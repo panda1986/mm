@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"golang.org/x/net/html/atom"
 )
 
 type Stock struct {
@@ -214,24 +213,40 @@ func (v *IpoScheme) profit() int {
 	return p
 }
 
+func (v *IpoScheme) Desc() string {
+	return fmt.Sprintf("name=%v, cash=%v, useFinance=%v", v.broker.name, v.cash, v.userFinancing)
+}
+
 func (v *IpoScheme) String() string {
 	return strings.Join(v.logs, "\r\n")
 }
 
 // ipo 打新资金分配
+type GroupSchemes struct {
+	desc string
+	schemes []IpoScheme
+}
+
+func NewGroupSchemes() *GroupSchemes {
+	v := &GroupSchemes{
+		schemes: []IpoScheme{},
+	}
+	return v
+}
+
 type IpoArrange struct {
-	stock *Stock
-	brokers []*Broker
-	cash int
-	all_schemes []*IpoScheme
+	stock      *Stock
+	brokers    []*Broker
+	cash       int
+	all_groups []*GroupSchemes
 }
 
 func NewIpoArrange(stock *Stock, cash int, brokers []*Broker) *IpoArrange {
 	v := &IpoArrange{
-		stock: stock,
-		brokers: brokers,
-		cash: cash,
-		all_schemes: []*IpoScheme{},
+		stock:      stock,
+		brokers:    brokers,
+		cash:       cash,
+		all_groups: []*GroupSchemes{},
 	}
 	return v
 }
@@ -239,44 +254,88 @@ func NewIpoArrange(stock *Stock, cash int, brokers []*Broker) *IpoArrange {
 func (v *IpoArrange) arrange() {
 	v.arrangeImpl([]*IpoScheme{}, 0)
 
-	
+	log.Println(fmt.Sprintf("......groups len=%v", len(v.all_groups)))
+	profit := 0
+	var selectedGroup *GroupSchemes
+	for k, group := range v.all_groups {
+		schemes := group.schemes
+		gProfit := 0
+		group.desc = fmt.Sprintf("group=%v,", k)
+		for _, scheme := range schemes {
+			p := scheme.profit()
+			gProfit += p
+			group.desc += fmt.Sprintf("scheme:%v profilt=%v;", scheme.Desc(), p)
+		}
+		group.desc += fmt.Sprintf("group profit=%v", gProfit)
+		log.Println(group.desc)
+		if gProfit >= profit {
+			profit = gProfit
+			selectedGroup = group
+		}
+	}
+
+	if selectedGroup == nil {
+		log.Println(fmt.Sprintf("no selected group, may be all profit is < 0"))
+		return
+	}
+	log.Println(fmt.Sprintf("selected group, desc=%v", selectedGroup.desc))
 }
 
 // first currentSchemeList is empty, layer = 0
 func (v *IpoArrange) arrangeImpl(currentSchemeList []*IpoScheme, layer int) {
 	sum := 0
+	log.Println(fmt.Sprintf("come to arrange impl, current scheme list len=%v, layer=%v", len(currentSchemeList), layer))
 	for _, scheme := range currentSchemeList {
 		sum += scheme.cash
+		log.Println(fmt.Sprintf("scheme: name=%v, cash=%v, use finance=%v", scheme.broker.name, scheme.cash, scheme.userFinancing))
+		log.Println("")
 	}
+
 	if sum > v.cash {
+		log.Println(fmt.Sprintf("sum=%v, total cash=%v, exceed, cycle break", sum, v.cash))
 		return
 	}
 	if sum == v.cash {
-		v.all_schemes = append(v.all_schemes, currentSchemeList...)
+		log.Println(fmt.Sprintf("sum equal to total, cycle break"))
+		gs := NewGroupSchemes()
+		for _, s := range currentSchemeList {
+			gs.schemes = append(gs.schemes, *s)
+		}
+		v.all_groups = append(v.all_groups, gs)
+
 		return
 	}
 	if layer >= len(v.brokers) {
-		v.all_schemes = append(v.all_schemes, currentSchemeList...)
+		gs := NewGroupSchemes()
+		for _, s := range currentSchemeList {
+			gs.schemes = append(gs.schemes, *s)
+		}
+		v.all_groups = append(v.all_groups, gs)
+		log.Println(fmt.Sprintf("layer=%v, exceed broker length:%v, cycle break, group schemes=%v", layer, len(v.brokers), printSchemes(gs.schemes)))
+		for k, g := range v.all_groups {
+			log.Println(fmt.Sprintf("group:%v, schemes=%v", k, printSchemes(g.schemes)))
+		}
 		return
 	}
 
 	// k指的是当前投入的资金
-	for k := 0; k + sum > v.cash; {
+	for k := 0; k + sum <= v.cash; {
 		if k == 0 { //不投资该券商
+			log.Println(fmt.Sprintf("不投资该券商"))
 			v.arrangeImpl(currentSchemeList, layer + 1)
 		} else {
 			// 纯现金投资该券商
+			log.Println(fmt.Sprintf("投资k=%v, layer=%v, broker=%v", k, layer, v.brokers[layer].name))
 			scheme := NewIpoScheme(v.stock, v.brokers[layer], k, false)
 			currentSchemeList = append(currentSchemeList, scheme)
 			v.arrangeImpl(currentSchemeList, layer + 1)
-			currentSchemeList = append(currentSchemeList[:0], currentSchemeList[1:]...)
+			currentSchemeList = currentSchemeList[0:len(currentSchemeList) - 1]
 
 			// 融资投资该券商
 			scheme = NewIpoScheme(v.stock, v.brokers[layer], k, true)
 			currentSchemeList = append(currentSchemeList, scheme)
 			v.arrangeImpl(currentSchemeList, layer + 1)
-			currentSchemeList = append(currentSchemeList[:0], currentSchemeList[1:]...)
-
+			currentSchemeList = currentSchemeList[0:len(currentSchemeList) - 1]
 		}
 		k += v.stock.ipoPrice
 	}
@@ -284,21 +343,32 @@ func (v *IpoArrange) arrangeImpl(currentSchemeList []*IpoScheme, layer int) {
 }
 
 func main()  {
-	s := NewStock("test", 10700, 5, 0.06, 0.05, 0.007)
+	s := NewStock("test", 10700, 5, 0.12, 0.10, 0.014)
 	log.Println(fmt.Sprintf("stock:%v", s))
 
 	brokers := []*Broker{}
-	brokers = append(brokers, &Broker{name: "富途", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "长桥", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "富途", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	brokers = append(brokers, &Broker{name: "华盛", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "东方财富国际版", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:100, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "辉立", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "华泰", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "艾德", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "耀才", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "东方财富国际版", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:100, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "辉立", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "华泰", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "艾德", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "耀才", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
 
 	for _, b := range brokers {
 		log.Println(b)
 	}
+
+	ir := NewIpoArrange(s, 40000, brokers)
+	ir.arrange()
+}
+
+func printSchemes(schemes []IpoScheme) string {
+	str := ""
+	for _, scheme := range schemes {
+		str += fmt.Sprintf("broker=%v, cash=%v, useFinance=%v; ", scheme.broker.name, scheme.cash, scheme.userFinancing)
+	}
+	return str
 }
