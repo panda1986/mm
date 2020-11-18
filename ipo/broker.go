@@ -350,10 +350,11 @@ func main()  {
 	log.Println(fmt.Sprintf("stock:%v", s))
 
 	brokers := []*Broker{}
-	brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "富途", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "华盛", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	//brokers = append(brokers, &Broker{name: "东方财富国际版", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	//brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "富途", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "长桥", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "华盛", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "东方财富", cashSubscribeFee:25, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	//brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:100, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	//brokers = append(brokers, &Broker{name: "辉立", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
 	//brokers = append(brokers, &Broker{name: "华泰", cashSubscribeFee:0, financingSubscribeFee: 0, financingRate: 0.03, financingMultipleTimes: 10})
@@ -364,7 +365,7 @@ func main()  {
 		log.Println(b)
 	}
 
-	ir := NewIpoArrange(s, 40000, brokers)
+	ir := NewIpoArrange(s, 60000, brokers)
 	ir.arrange()
 }
 
