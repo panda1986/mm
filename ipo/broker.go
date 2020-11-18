@@ -323,6 +323,7 @@ func (v *IpoArrange) arrangeImpl(currentSchemeList []*IpoScheme, layer int) {
 		if k == 0 { //不投资该券商
 			log.Println(fmt.Sprintf("不投资该券商"))
 			v.arrangeImpl(currentSchemeList, layer + 1)
+			log.Println(fmt.Sprintf("k=0 finish"))
 		} else {
 			// 纯现金投资该券商
 			log.Println(fmt.Sprintf("投资k=%v, layer=%v, broker=%v", k, layer, v.brokers[layer].name))
@@ -330,12 +331,14 @@ func (v *IpoArrange) arrangeImpl(currentSchemeList []*IpoScheme, layer int) {
 			currentSchemeList = append(currentSchemeList, scheme)
 			v.arrangeImpl(currentSchemeList, layer + 1)
 			currentSchemeList = currentSchemeList[0:len(currentSchemeList) - 1]
+			log.Println(fmt.Sprintf("投资k=%v, layer=%v,broker=%v, cash finish", k, layer, v.brokers[layer].name))
 
 			// 融资投资该券商
 			scheme = NewIpoScheme(v.stock, v.brokers[layer], k, true)
 			currentSchemeList = append(currentSchemeList, scheme)
 			v.arrangeImpl(currentSchemeList, layer + 1)
 			currentSchemeList = currentSchemeList[0:len(currentSchemeList) - 1]
+			log.Println(fmt.Sprintf("投资k=%v, layer=%v,broker=%v, finance finish", k, layer, v.brokers[layer].name))
 		}
 		k += v.stock.ipoPrice
 	}
