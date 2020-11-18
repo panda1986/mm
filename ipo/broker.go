@@ -346,13 +346,13 @@ func (v *IpoArrange) arrangeImpl(currentSchemeList []*IpoScheme, layer int) {
 }
 
 func main()  {
-	s := NewStock("test", 10700, 5, 0.12, 0.10, 0.014)
+	s := NewStock("test", 54000, 5, 0.12, 0.10, 0.014)
 	log.Println(fmt.Sprintf("stock:%v", s))
 
 	brokers := []*Broker{}
 	//brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	brokers = append(brokers, &Broker{name: "富途", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
-	brokers = append(brokers, &Broker{name: "长桥", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
+	brokers = append(brokers, &Broker{name: "长桥", cashSubscribeFee:49, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	brokers = append(brokers, &Broker{name: "华盛", cashSubscribeFee:50, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	brokers = append(brokers, &Broker{name: "东方财富", cashSubscribeFee:25, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
 	//brokers = append(brokers, &Broker{name: "老虎", cashSubscribeFee:100, financingSubscribeFee: 100, financingRate: 0.03, financingMultipleTimes: 10})
